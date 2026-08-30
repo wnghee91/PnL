@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>손익 현황 — 와이어드컴퍼니</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f1f5f9; color: #1e293b; min-width: 720px; }
+
+/* Header */
+.header {
+  background: #0f172a; color: white;
+  padding: 22px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+}
+.header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+.header-badge {
+  font-size: 11px; font-weight: 600;
+  background: rgba(37,99,235,0.18); color: #93c5fd;
+  padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(37,99,235,0.3);
+}
+
+/* Tabs */
+.tab-bar {
+  background: white; border-bottom: 1px solid #e2e8f0;
+  padding: 0 40px; display: flex;
+}
+.tab-btn {
+  padding: 14px 22px; font-size: 13.5px; font-weight: 500;
+  color: #64748b; background: none; border: none; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.15s; white-space: nowrap;
+}
+.tab-btn:hover { color: #1e40af; }
+.tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+
+/* Content wrapper */
+.content { padding: 28px 40px 48px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ======= KPI CARDS ======= */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.kpi-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  border: 1px solid #e8edf3;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.kpi-card.biz::before  { background: #2563eb; }
+.kpi-card.ip::before   { background: #d97706; }
+.kpi-card.prod::before { background: #7c3aed; }
+.kpi-card.total::before{ background: linear-gradient(90deg, #2563eb, #7c3aed); }
+
+.kpi-card-name {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.kpi-card.biz  .kpi-card-name { color: #2563eb; }
+.kpi-card.ip   .kpi-card-name { color: #d97706; }
+.kpi-card.prod .kpi-card-name { color: #7c3aed; }
+.kpi-card.total .kpi-card-name { color: #475569; }
+
+.kpi-main-value {
+  font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -0.5px;
+  margin-bottom: 2px;
+}
+.kpi-main-value.pos { color: #16a34a; }
+.kpi-main-value.neg { color: #dc2626; }
+.kpi-main-unit { font-size: 13px; font-weight: 400; color: #64748b; margin-left: 2px; }
+.kpi-main-label { font-size: 11px; color: #94a3b8; margin-bottom: 12px; }
+
+.kpi-divider { height: 1px; background: #f1f5f9; margin: 12px 0; }
+.kpi-ytd-row { display: flex; align-items: baseline; justify-content: space-between; }
+.kpi-ytd-label { font-size: 11px; color: #94a3b8; }
+.kpi-ytd-val { font-size: 13px; font-weight: 700; }
+
+/* Chart card */
+.chart-card, .table-card {
+  background: white;
+  border-radius: 10px;
+  padding: 24px 26px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  border: 1px solid #e8edf3;
+  margin-bottom: 20px;
+}
+.table-card:last-child { margin-bottom: 0; }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.card-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+.card-subtitle { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.chart-legend { display: flex; gap: 18px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748b; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.table-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+.table-note { font-size: 11px; color: #94a3b8; margin-top: 10px; line-height: 1.6; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  padding: 9px 14px; background: #f8fafc;
+  color: #64748b; font-weight: 600; font-size: 13px;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  text-align: right; border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+thead th:first-child { text-align: left; }
+tbody td {
+  padding: 11px 14px; text-align: right;
+  border-bottom: 1px solid #f1f5f9; color: #334155; white-space: nowrap;
+}
+tbody td:first-child { text-align: left; font-weight: 500; color: #1e293b; }
+tbody tr:last-child td { border-bottom: none; }
+.row-total td {
+  font-weight: 700; background: #f8fafc; color: #1e293b;
+  border-top: 1px solid #e2e8f0;
+}
+.col-cumul { border-left: 1px solid #e2e8f0; background: #fafbff; font-weight: 600; }
+
+.pos { color: #16a34a; }
+.neg { color: #dc2626; }
+.dash { color: #cbd5e1; }
+.mom-pos { color: #16a34a; font-weight: 600; font-size: 12px; }
+.mom-neg { color: #dc2626; font-weight: 600; font-size: 12px; }
+.rate-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; background: #ecfdf5; color: #15803d; }
+
+.group-header { margin-bottom: 20px; }
+.group-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.group-desc { font-size: 12.5px; color: #64748b; }
+
+/* 통합 현황 상세 테이블 */
+.section-row td {
+  padding: 7px 14px; font-weight: 700; font-size: 11px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  border-top: 2px solid transparent;
+}
+.section-row.biz td  { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.section-row.ip td   { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.section-row.prod td { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.section-row.sum td  { background: #f1f5f9; color: #374151; border-color: #cbd5e1; }
+
+.indent { padding-left: 26px !important; }
+.indent2 { padding-left: 46px !important; }
+.row-subitem td { font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f8fafc; }
+.row-subitem td:first-child { color: #94a3b8; font-weight: 400; }
+
+.row-subtotal td {
+  font-weight: 700;
+  background: #fafafa;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
+}
+.row-subtotal.biz td  { color: #1d4ed8; }
+.row-subtotal.ip td   { color: #b45309; }
+.row-subtotal.prod td { color: #6d28d9; }
+
+.row-grand td {
+  font-weight: 700; font-size: 13.5px;
+  background: #f8fafc;
+  border-top: 2px solid #334155;
+  border-bottom: none;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">와이어드컴퍼니 그룹 손익 현황</div>
+    <div class="header-sub">2026년 1월 — 7월 누계 &nbsp;·&nbsp; 3개 그룹 통합 &nbsp;·&nbsp; 부가세 포함 기준</div>
+  </div>
+  <div class="header-badge">2026년 7월 기준</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('overview')">통합 현황</button>
+  <button class="tab-btn" onclick="switchTab('biz')">사업개발그룹</button>
+  <button class="tab-btn" onclick="switchTab('ip')">IP그룹</button>
+  <button class="tab-btn" onclick="switchTab('prod')">제품그룹</button>
+</div>
+
+<div class="content">
+
+  <!-- ==================== 통합 현황 ==================== -->
+  <div id="tab-overview" class="tab-content active">
+
+    <div class="kpi-grid">
+
+      <div class="kpi-card total">
+        <div class="kpi-card-name">3개 그룹 합계</div>
+        <div class="kpi-main-value neg" style="font-size:24px;">-1.48<span class="kpi-main-unit">억원</span></div>
+        <div class="kpi-main-label">7월 영업이익</div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-ytd-row">
+          <div class="kpi-ytd-label">누계 영업이익</div>
+          <div class="kpi-ytd-val neg">-5.61억</div>
+        </div>
+      </div>
+      <div class="kpi-card biz">
+        <div class="kpi-card-name">사업개발그룹</div>
+        <div class="kpi-main-value neg">-0.14<span class="kpi-main-unit">억원</span></div>
+        <div class="kpi-main-label">7월 영업이익</div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-ytd-row">
+          <div class="kpi-ytd-label">누계 영업이익</div>
+          <div class="kpi-ytd-val neg">-0.59억</div>
+        </div>
+      </div>
+      <div class="kpi-card ip">
+        <div class="kpi-card-name">IP그룹</div>
+        <div class="kpi-main-value pos">+0.23<span class="kpi-main-unit">억원</span></div>
+        <div class="kpi-main-label">7월 영업이익</div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-ytd-row">
+          <div class="kpi-ytd-label">누계 영업이익</div>
+          <div class="kpi-ytd-val neg">-1.89억</div>
+        </div>
+      </div>
+      <div class="kpi-card prod">
+        <div class="kpi-card-name">제품그룹</div>
+        <div class="kpi-main-value neg">-1.57<span class="kpi-main-unit">억원</span></div>
+        <div class="kpi-main-label">7월 영업이익</div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-ytd-row">
+          <div class="kpi-ytd-label">누계 영업이익</div>
+          <div class="kpi-ytd-val neg">-3.13억</div>
+        </div>
+      </div>
+
+    </div><!-- /kpi-grid -->
+
+    <div class="chart-card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">그룹별 월별 영업이익 추이</div>
+          <div class="card-subtitle">단위: 억원 / 부가세 포함</div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div>사업개발</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d97706;"></div>IP그룹</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>제품그룹</div>
+        </div>
+      </div>
+      <canvas id="chartCanvas"></canvas>
+    </div>
+
+    <div class="table-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <div class="table-title" style="margin:0;">그룹별 월별 손익 비교</div>
+        <div id="gTabBar"></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="mTable" style="min-width:480px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;min-width:160px;">항목</th>
+              <th style="color:#2563eb;min-width:150px;">사업개발</th>
+              <th style="color:#d97706;min-width:150px;">IP그룹</th>
+              <th style="color:#7c3aed;min-width:150px;">제품그룹</th>
+            </tr>
+          </thead>
+          <tbody id="mBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<script>
+(function(){
+var MN=['1월','2월','3월','4월','5월','6월','7월','누계'];
+var IT=[
+  {l:'매출',t:'m',b:[1050197037, 1359179906, 1070955280, 1269120523, 1731292953, 1480092125, 1103622530, 9064460354],i:[98774548, 78517395, 123909278, 115298903, 105015092, 84613496, 397096267, 1003224979],p:[null, null, null, null, null, 0, 304890, 304890]},
+  {l:'변동비',t:'m',b:[-965613061, -1257949516, -981675054, -1177502144, -1609903465, -1395728036, -1014199694, -8402570970],i:[-71997658, -55344916, -102541572, -110926926, -86542547, -73032296, -321627762, -822013677],p:[null, null, null, null, null, -11105961, -13519541, -24625502]},
+  {l:'매출원가',t:'s',b:[-835413329, -1069371654, -802547337, -996128204, -1422769981, -1188529022, -850833490, -7165593017],i:[-56557042, -46082433, -68183182, -79128822, -60567666, -48050223, -262314153, -620883521],p:[null, null, null, null, null, null, null, null]},
+  {l:'물류비',t:'s',b:[null, null, null, null, null, null, null, null],i:[-1096871, -714000, -10826647, -11050432, -8561344, -8112799, -23874811, -64236904],p:[null, null, null, null, null, null, null, null]},
+  {l:'셀러수수료',t:'s',b:[-122837207, -167384791, -168367096, -155362392, -178067675, -187398607, -149885081, -1129302849],i:[-8318974, -1494697, -9662264, -2494637, 112574, -958479, -13013337, -35829814],p:[null, null, null, null, null, null, null, null]},
+  {l:'결제수수료',t:'s',b:[-3751697, -14025122, -7884785, -8116700, -9065809, -6677296, -3872182, -53393591],i:[-3285492, -3399946, -4444641, -5224002, -4063439, -4195717, -5848376, -30461613],p:[null, null, null, null, null, null, null, null]},
+  {l:'자사부담',t:'s',b:[-3610828, -7167949, -2875836, -17894848, 0, -13123111, -9608941, -54281513],i:[-1164366, null, null, null, null, null, -1994639, -3159005],p:[null, null, null, null, null, null, null, null]},
+  {l:'마케팅비',t:'s',b:[null, null, null, null, null, null, null, null],i:[-1574913, -3653840, -9424838, -13029033, -13462672, -11715078, -14582446, -67442820],p:[null, null, null, null, null, null, null, null]},
+  {l:'광고선전비',t:'s',b:[null, null, null, null, null, null, null, null],i:[null, null, null, null, null, null, null, null],p:[null, null, null, null, null, -277286, -1584396, -1861682]},
+  {l:'클라우드 서버',t:'s',b:[null, null, null, null, null, null, null, null],i:[null, null, null, null, null, null, null, null],p:[null, null, null, null, null, -4403749, -5322328, -9726077]},
+  {l:'서비스 구독료',t:'s',b:[null, null, null, null, null, null, null, null],i:[null, null, null, null, null, null, null, null],p:[null, null, null, null, null, -6424926, -6612817, -13037743]},
+  {l:'공헌이익',t:'m',b:[84583976, 101230390, 89280226, 91618379, 121389488, 84364089, 89422836, 661889384],i:[26776890, 23172479, 21367706, 4371977, 18472545, 11581200, 75468505, 181211302],p:[null, null, null, null, null, -11105961, -13214651, -24320612]},
+  {l:'공헌이익률',t:'r',b:["8.05%", "7.45%", "8.34%", "7.22%", "7.01%", "5.70%", "8.10%", "7.30%"],i:["27.11%", "29.51%", "17.24%", "3.79%", "17.59%", "13.69%", "19.01%", "18.06%"],p:[null, null, null, null, null, null, null, null]},
+  {l:'고정비',t:'m',b:[-103001272, -103001272, -103001272, -103001272, -103001272, -103001272, -103001272, -721008904],i:[-52889850, -52889850, -52889850, -52889850, -52889850, -52889850, -52889850, -370228950],p:[null, null, null, null, null, -144108878, -144108878, -288217756]},
+  {l:'영업이익',t:'t',b:[-18417296, -1770882, -13721046, -11382893, 18388216, -18637183, -13578436, -59119520],i:[-26112960, -29717371, -31522144, -48517873, -34417305, -41308650, 22578655, -189017648],p:[null, null, null, null, null, -155214839, -157323529, -312538368]}
+];
+var selG=0, subOpen=false;
+var GNAMES=['통합','사업개발','IP그룹','제품그룹'];
+var GCOLORS=['#475569','#2563eb','#d97706','#7c3aed'];
+var GK=[null,'b','i','p'];
+var MNS=['1월','2월','3월','4월','5월','6월','7월','누계'];
+var COLS=[
+  {l:'매출'},{l:'변동비'},{l:'공헌이익'},{l:'공헌이익률'},{l:'고정비'},{l:'영업이익'}
+];
+var SUB_COLS=[
+  {l:'매출원가'},{l:'물류비'},{l:'셀러수수료'},{l:'결제수수료'},
+  {l:'자사부담'},{l:'마케팅비'},{l:'광고선전비'},{l:'클라우드 서버'},{l:'서비스 구독료'}
+];
+window._toggleSub=function(){subOpen=!subOpen;render();};
+IT.forEach(function(d){
+  if(d.t!=='r'){
+    d.c=d.b.map(function(v,idx){
+      var iv=d.i[idx],pv=d.p[idx];
+      if(v===null&&iv===null&&pv===null)return null;
+      return(v||0)+(iv||0)+(pv||0);
+    });
+  }
+});
+var revRow=IT.filter(function(d){return d.l==='매출';})[0];
+var cmRow=IT.filter(function(d){return d.l==='공헌이익';})[0];
+IT.filter(function(d){return d.t==='r';})[0].c=cmRow.c.map(function(cv,i){
+  var rv=revRow.c[i];
+  return(cv!==null&&rv!==null&&rv!==0)?((cv/rv*100).toFixed(2)+'%'):null;
+});
+function fmt(v){
+  if(v===null)return '<span style="color:#cbd5e1;">—</span>';
+  if(typeof v==='string')return '<span class="rate-pill">'+v+'</span>';
+  var a=Math.abs(v).toLocaleString('ko-KR');
+  return v>0?'<span style="color:#16a34a;">+'+a+'</span>':v<0?'<span style="color:#dc2626;">-'+a+'</span>':'0';
+}
+function getVal(label,mi){
+  var d=IT.filter(function(x){return x.l===label;})[0];
+  if(!d)return null;
+  return selG===0?d.c[mi]:d[GK[selG]][mi];
+}
+function render(){
+  var th=document.querySelector('#mTable thead tr');
+  th.innerHTML='<th style="text-align:left;min-width:120px;">항목</th>'
+    +MNS.map(function(mn,i){return '<th style="white-space:nowrap;'+(i===7?'border-left:2px solid #334155;':'')+'">' +mn+'</th>';}).join('');
+  var h='';
+  COLS.forEach(function(c){
+    var isProfit=c.l==='영업이익', isVD=c.l==='변동비';
+    var rs=isProfit?'font-weight:700;background:#f8fafc;border-top:2px solid #334155;':'';
+    var label=isVD
+      ?'<span style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;" onclick="window._toggleSub()">'
+       +'<span style="font-size:10px;display:inline-block;transform:rotate('+(subOpen?'90':'0')+'deg);">▶</span>'+c.l+'</span>'
+      :c.l;
+    h+='<tr style="'+rs+'"><td style="font-weight:'+(isProfit?700:400)+';">'+label+'</td>';
+    MNS.forEach(function(mn,mi){
+      var v=getVal(c.l,mi);
+      var cs='text-align:right;white-space:nowrap;'+(mi===7?'border-left:2px solid #334155;font-weight:700;':'');
+      h+='<td style="'+cs+'">'+fmt(v)+'</td>';
+    });
+    h+='</tr>';
+    if(isVD&&subOpen){
+      SUB_COLS.forEach(function(sc){
+        h+='<tr style="background:#fafafa;"><td style="padding-left:22px;font-size:12px;color:#94a3b8;">'+sc.l+'</td>';
+        MNS.forEach(function(mn,mi){
+          var v=getVal(sc.l,mi);
+          var cs='text-align:right;white-space:nowrap;font-size:12px;'+(mi===7?'border-left:2px solid #334155;font-weight:700;':'');
+          h+='<td style="'+cs+'">'+fmt(v)+'</td>';
+        });
+        h+='</tr>';
+      });
+    }
+  });
+  document.getElementById('mBody').innerHTML=h;
+}
+function buildGroupTabs(){
+  var bar=document.getElementById('gTabBar');
+  bar.style.cssText='display:flex;gap:4px;flex-wrap:wrap;';
+  GNAMES.forEach(function(gn,i){
+    var btn=document.createElement('button');
+    btn.textContent=gn;
+    var act=i===selG;
+    btn.style.cssText='padding:5px 14px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid '+(act?GCOLORS[i]:'#e2e8f0')+';background:'+(act?GCOLORS[i]:'transparent')+';color:'+(act?'white':GCOLORS[i])+';transition:all 0.15s;';
+    btn.onclick=function(){
+      selG=i;
+      bar.querySelectorAll('button').forEach(function(b,j){
+        var a=j===i;
+        b.style.background=a?GCOLORS[j]:'transparent';
+        b.style.color=a?'white':GCOLORS[j];
+        b.style.borderColor=a?GCOLORS[j]:'#e2e8f0';
+      });
+      render();
+    };
+    bar.appendChild(btn);
+  });
+}
+buildGroupTabs();render();
+})();
+</script>
+
+  <!-- ==================== 사업개발그룹 ==================== -->
+  <div id="tab-biz" class="tab-content">
+    <div class="group-header">
+      <div class="group-title" style="color:#2563eb;">사업개발그룹</div>
+      <div class="group-desc">와이어드 마켓 공구 플랫폼 &nbsp;·&nbsp; 부가세 포함 기준</div>
+    </div>
+    <div class="table-card">
+      <div class="table-title">월별 손익 현황</div>
+      <table>
+        <thead><tr><th>항목</th><th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th class="col-cumul">누계</th></tr></thead>
+        <tbody>
+          <tr class=""><td>조정 매출액</td><td class="">1,050,197,037</td><td class="">1,359,179,906</td><td class="">1,070,955,280</td><td class="">1,269,120,523</td><td class="">1,731,292,953</td><td class="">1,480,092,125</td><td class="">1,103,622,530</td><td class="col-cumul">9,064,460,354</td></tr>
+          <tr class=""><td>변동비</td><td class="neg">-965,613,061</td><td class="neg">-1,257,949,516</td><td class="neg">-981,675,054</td><td class="neg">-1,177,502,144</td><td class="neg">-1,609,903,465</td><td class="neg">-1,395,728,036</td><td class="neg">-1,014,199,694</td><td class="neg col-cumul">-8,402,570,970</td></tr>
+          <tr class="row-subitem"><td class="indent">매출원가</td><td class="neg">-835,413,329</td><td class="neg">-1,069,371,654</td><td class="neg">-802,547,337</td><td class="neg">-996,128,204</td><td class="neg">-1,422,769,981</td><td class="neg">-1,188,529,022</td><td class="neg">-850,833,490</td><td class="neg col-cumul">-7,165,593,017</td></tr>
+          <tr class="row-subitem"><td class="indent">셀러수수료</td><td class="neg">-122,837,207</td><td class="neg">-167,384,791</td><td class="neg">-168,367,096</td><td class="neg">-155,362,392</td><td class="neg">-178,067,675</td><td class="neg">-187,398,607</td><td class="neg">-149,885,081</td><td class="neg col-cumul">-1,129,302,849</td></tr>
+          <tr class="row-subitem"><td class="indent">결제수수료</td><td class="neg">-3,751,697</td><td class="neg">-14,025,122</td><td class="neg">-7,884,785</td><td class="neg">-8,116,700</td><td class="neg">-9,065,809</td><td class="neg">-6,677,296</td><td class="neg">-3,872,182</td><td class="neg col-cumul">-53,393,591</td></tr>
+          <tr class="row-subitem"><td class="indent">자사부담</td><td class="neg">-3,610,828</td><td class="neg">-7,167,949</td><td class="neg">-2,875,836</td><td class="neg">-17,894,848</td><td class="">0</td><td class="neg">-13,123,111</td><td class="neg">-9,608,941</td><td class="neg col-cumul">-54,281,513</td></tr>
+          <tr class=""><td>조정 한계이익</td><td class="">84,583,976</td><td class="">101,230,390</td><td class="">89,280,226</td><td class="">91,618,379</td><td class="">121,389,488</td><td class="">84,364,089</td><td class="">89,422,836</td><td class="col-cumul">661,889,384</td></tr>
+          <tr class=""><td>한계이익률</td><td class=""><span class="rate-pill">8.05%</span></td><td class=""><span class="rate-pill">7.45%</span></td><td class=""><span class="rate-pill">8.34%</span></td><td class=""><span class="rate-pill">7.22%</span></td><td class=""><span class="rate-pill">7.01%</span></td><td class=""><span class="rate-pill">5.70%</span></td><td class=""><span class="rate-pill">8.10%</span></td><td class="col-cumul"><span class="rate-pill">7.30%</span></td></tr>
+          <tr class=""><td>고정비</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg">-103,001,272</td><td class="neg col-cumul">-721,008,904</td></tr>
+          <tr class="row-total"><td>영업이익</td><td class="neg">-18,417,296</td><td class="neg">-1,770,882</td><td class="neg">-13,721,046</td><td class="neg">-11,382,893</td><td class="pos">+18,388,216</td><td class="neg">-18,637,183</td><td class="neg">-13,578,436</td><td class="neg col-cumul">-59,119,520</td></tr>
+        </tbody>
+      </table>
+      <div class="table-note">※ 고정비 103,001,272원/월 (부가세 포함) · 1~6월: 공동 상품(파랑) 절반 IP 이관, 중복 계상분(주황) 절반 차감 반영</div>
+    </div>
+  </div>
+
+  <!-- ==================== IP그룹 ==================== -->
+  <div id="tab-ip" class="tab-content">
+    <div class="group-header">
+      <div class="group-title" style="color:#d97706;">IP그룹</div>
+      <div class="group-desc">부가세 포함 기준 &nbsp;·&nbsp; 7월부터 공구 매출 포함</div>
+    </div>
+    <div class="table-card">
+      <div class="table-title">월별 손익 현황</div>
+      <table>
+        <thead><tr><th>항목</th><th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th class="col-cumul">누계</th></tr></thead>
+        <tbody>
+          <tr class=""><td>매출</td><td class="">98,774,548</td><td class="">78,517,395</td><td class="">123,909,278</td><td class="">115,298,903</td><td class="">105,015,092</td><td class="">84,613,496</td><td class="">397,096,267</td><td class="col-cumul">1,003,224,979</td></tr>
+          <tr class=""><td>변동비</td><td class="neg">-71,997,658</td><td class="neg">-55,344,916</td><td class="neg">-102,541,572</td><td class="neg">-110,926,926</td><td class="neg">-86,542,547</td><td class="neg">-73,032,296</td><td class="neg">-321,627,762</td><td class="neg col-cumul">-822,013,677</td></tr>
+          <tr class="row-subitem"><td class="indent">매출원가</td><td class="neg">-56,557,042</td><td class="neg">-46,082,433</td><td class="neg">-68,183,182</td><td class="neg">-79,128,822</td><td class="neg">-60,567,666</td><td class="neg">-48,050,223</td><td class="neg">-262,314,153</td><td class="neg col-cumul">-620,883,521</td></tr>
+          <tr class="row-subitem"><td class="indent">물류비</td><td class="neg">-1,096,871</td><td class="neg">-714,000</td><td class="neg">-10,826,647</td><td class="neg">-11,050,432</td><td class="neg">-8,561,344</td><td class="neg">-8,112,799</td><td class="neg">-23,874,811</td><td class="neg col-cumul">-64,236,904</td></tr>
+          <tr class="row-subitem"><td class="indent">셀러수수료</td><td class="neg">-8,318,974</td><td class="neg">-1,494,697</td><td class="neg">-9,662,264</td><td class="neg">-2,494,637</td><td class="">112,574</td><td class="neg">-958,479</td><td class="neg">-13,013,337</td><td class="neg col-cumul">-35,829,814</td></tr>
+          <tr class="row-subitem"><td class="indent">결제수수료</td><td class="neg">-3,285,492</td><td class="neg">-3,399,946</td><td class="neg">-4,444,641</td><td class="neg">-5,224,002</td><td class="neg">-4,063,439</td><td class="neg">-4,195,717</td><td class="neg">-5,848,376</td><td class="neg col-cumul">-30,461,613</td></tr>
+          <tr class="row-subitem"><td class="indent">자사부담</td><td class="neg">-1,164,366</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-1,994,639</td><td class="neg col-cumul">-3,159,005</td></tr>
+          <tr class="row-subitem"><td class="indent">마케팅비 <span style="font-size:10px;opacity:0.7">(광고선전+시딩)</span></td><td class="neg">-1,574,913</td><td class="neg">-3,653,840</td><td class="neg">-9,424,838</td><td class="neg">-13,029,033</td><td class="neg">-13,462,672</td><td class="neg">-11,715,078</td><td class="neg">-14,582,446</td><td class="neg col-cumul">-67,442,820</td></tr>
+          <tr class=""><td>공헌이익</td><td class="">26,776,890</td><td class="">23,172,479</td><td class="">21,367,706</td><td class="">4,371,977</td><td class="">18,472,545</td><td class="">11,581,200</td><td class="">75,468,505</td><td class="col-cumul">181,211,302</td></tr>
+          <tr class=""><td>공헌이익률</td><td class=""><span class="rate-pill">27.11%</span></td><td class=""><span class="rate-pill">29.51%</span></td><td class=""><span class="rate-pill">17.24%</span></td><td class=""><span class="rate-pill">3.79%</span></td><td class=""><span class="rate-pill">17.59%</span></td><td class=""><span class="rate-pill">13.69%</span></td><td class=""><span class="rate-pill">19.01%</span></td><td class="col-cumul"><span class="rate-pill">18.06%</span></td></tr>
+          <tr class=""><td>고정비</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg">-52,889,850</td><td class="neg col-cumul">-370,228,950</td></tr>
+          <tr class="row-total"><td>영업이익</td><td class="neg">-26,112,960</td><td class="neg">-29,717,371</td><td class="neg">-31,522,144</td><td class="neg">-48,517,873</td><td class="neg">-34,417,305</td><td class="neg">-41,308,650</td><td class="pos">+22,578,655</td><td class="neg col-cumul">-189,017,648</td></tr>
+        </tbody>
+      </table>
+      <div class="table-note">※ 고정비 0.53억/월 (52,889,850원, 부가세 포함) · 마케팅비 = 광고선전비 + 마케팅비(시딩) 합산 · 7월부터 공구 매출 포함 · 1~6월: 공동 상품(파랑) 실적 절반 편입, 중복 계상분(주황) 절반 차감 반영</div>
+    </div>
+  </div>
+
+  <!-- ==================== 제품그룹 ==================== -->
+  <div id="tab-prod" class="tab-content">
+    <div class="group-header">
+      <div class="group-title" style="color:#7c3aed;">제품그룹</div>
+      <div class="group-desc">와이어디 매칭 · 파트너스 · 와이어디 플랫폼 &nbsp;·&nbsp; 6월부터 실적 반영</div>
+    </div>
+    <div class="table-card">
+      <div class="table-title">월별 손익 현황</div>
+      <table>
+        <thead><tr><th>항목</th><th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th class="col-cumul">누계</th></tr></thead>
+        <tbody>
+          <tr class=""><td>매출</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="">0</td><td class="">304,890</td><td class="col-cumul">304,890</td></tr>
+          <tr class=""><td>변동비</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-11,105,961</td><td class="neg">-13,519,541</td><td class="neg col-cumul">-24,625,502</td></tr>
+          <tr class="row-subitem"><td class="indent">결제수수료</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash col-cumul">—</td></tr>
+          <tr class="row-subitem"><td class="indent">광고선전비</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-277,286</td><td class="neg">-1,584,396</td><td class="neg col-cumul">-1,861,682</td></tr>
+          <tr class="row-subitem"><td class="indent">클라우드 서버</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-4,403,749</td><td class="neg">-5,322,328</td><td class="neg col-cumul">-9,726,077</td></tr>
+          <tr class="row-subitem"><td class="indent">서비스 구독료</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-6,424,926</td><td class="neg">-6,612,817</td><td class="neg col-cumul">-13,037,743</td></tr>
+          <tr class=""><td>공헌이익</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-11,105,961</td><td class="neg">-13,214,651</td><td class="neg col-cumul">-24,320,612</td></tr>
+          <tr class=""><td>공헌이익률</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash col-cumul">—</td></tr>
+          <tr class=""><td>고정비</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-144,108,878</td><td class="neg">-144,108,878</td><td class="neg col-cumul">-288,217,756</td></tr>
+          <tr class="row-total"><td>영업이익</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="neg">-155,214,839</td><td class="neg">-157,323,529</td><td class="neg col-cumul">-312,538,368</td></tr>
+        </tbody>
+      </table>
+      <div class="table-note">※ 1~5월 미운영. 6월부터 서비스 정식 가동. 고정비 144,108,878원/월 (부가세 포함) · 매출 규모가 미미하여 공헌이익률 미표기</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(name) {
+  const tabs = ['overview','biz','ip','prod'];
+  const btns = document.querySelectorAll('.tab-btn');
+  tabs.forEach((t, i) => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    btns[i].classList.toggle('active', t === name);
+  });
+  if (name === 'overview') setTimeout(drawChart, 20);
+}
+function drawChart() {
+  const canvas = document.getElementById('chartCanvas');
+  const container = canvas.parentElement;
+  const W = container.clientWidth - 52;
+  const H = 280;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const ML = 58, MR = 16, MT = 14, MB = 44;
+  const cw = W - ML - MR, ch = H - MT - MB;
+  const months = ['1월','2월','3월','4월','5월','6월','7월'];
+  const biz  = [-0.18,-0.02,-0.14,-0.11,0.18,-0.19,-0.14];
+  const ip   = [-0.26,-0.30,-0.32,-0.49,-0.34,-0.41,0.23];
+  const prod = [null,null,null,null,null,-1.55,-1.57];
+  const colors = ['#2563eb','#d97706','#7c3aed'];
+  const data = [biz, ip, prod];
+  const yMin = -1.60, yMax = 0.40, yRange = yMax - yMin;
+
+  function py(v) { return MT + ch * (1 - (v - yMin) / yRange); }
+
+  const ticks = [-1.50,-1.25,-1.00,-0.75,-0.50,-0.25,0.00,0.25];
+  ticks.forEach(v => {
+    const y = py(v);
+    ctx.strokeStyle = v === 0 ? '#94a3b8' : '#f1f5f9';
+    ctx.lineWidth = v === 0 ? 1.5 : 1;
+    ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(ML + cw, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'right';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(v === 0 ? '0' : v.toFixed(2), ML - 6, y + 4);
+  });
+
+  ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'left';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.fillText('(억원)', ML, MT - 3);
+
+  const groupW = cw / 7;
+  const barW = Math.min(20, groupW * 0.22);
+  const barGap = 3;
+  const totalBarsW = 3 * barW + 2 * barGap;
+
+  for (let gi = 0; gi < 7; gi++) {
+    const gx = ML + gi * groupW + (groupW - totalBarsW) / 2;
+    for (let d = 0; d < 3; d++) {
+      const v = data[d][gi];
+      if (v === null) continue;
+      const bx = gx + d * (barW + barGap);
+      const top = py(Math.max(v, 0)), bot = py(Math.min(v, 0));
+      ctx.fillStyle = colors[d]; ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(bx, top, barW, Math.abs(bot-top), [2,2,0,0]);
+      else ctx.rect(bx, top, barW, Math.abs(bot-top));
+      ctx.fill(); ctx.globalAlpha = 1;
+
+      ctx.font = 'bold 9px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      const lx = bx + barW / 2;
+      if (v >= 0) { ctx.fillStyle = '#15803d'; ctx.fillText('+'+v.toFixed(2), lx, top - 3); }
+      else        { ctx.fillStyle = '#dc2626'; ctx.fillText(v.toFixed(2), lx, bot + 10); }
+    }
+    ctx.fillStyle = '#64748b'; ctx.font = '12px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(months[gi], ML + gi * groupW + groupW / 2, H - MB + 16);
+  }
+}
+window.addEventListener('load', () => { drawChart(); });
+window.addEventListener('resize', () => {
+  if (document.getElementById('tab-overview').classList.contains('active')) drawChart();
+});
+</script>
+</body>
+</html>
